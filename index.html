@@ -152,6 +152,7 @@
   .chip:hover{border-color:var(--ink-faint);}
   .chip.active-tipo{background:var(--lavender);border-color:var(--lavender);color:#3A2E63;}
   .chip.active-tag{background:var(--sage);border-color:var(--sage);color:#2C4327;}
+  .chip.active-extra{background:var(--sage);border-color:var(--sage);color:#2C4327;}
 
   .lista-obras{
     display:flex;
@@ -319,7 +320,6 @@
     font-weight:600;
   }
 
-  .capitulos-wrap{display:flex;flex-direction:column;gap:14px;}
   .capitulo-card{
     background:var(--card);
     border:1px solid var(--border);
@@ -344,7 +344,51 @@
     display:flex;align-items:center;justify-content:center;
     font-size:12.5px;
     font-weight:700;
+    flex-shrink:0;
   }
+
+  .capitulos-lista{display:flex;flex-direction:column;gap:8px;}
+  .capitulo-link{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    padding:13px 16px;
+    cursor:pointer;
+    transition:border-color .12s, transform .12s;
+  }
+  .capitulo-link:hover{border-color:var(--sage);}
+  .cap-link-titulo{
+    font-weight:600;
+    font-size:14.5px;
+    color:var(--ink);
+    flex-shrink:0;
+  }
+  .cap-link-preview{
+    font-size:13px;
+    color:var(--ink-faint);
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    flex:1;
+  }
+  .cap-link-chevron{color:var(--ink-faint);flex-shrink:0;}
+
+  .btn-voltar{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:none;
+    border:none;
+    color:var(--ink-soft);
+    font-size:13.5px;
+    font-weight:600;
+    padding:0 0 18px;
+    font-family:'Fredoka',sans-serif;
+  }
+  .btn-voltar:hover{color:var(--sage-ink);}
   .campo-label{
     font-size:12px;
     font-weight:700;
@@ -643,6 +687,14 @@
       <label>Número de capítulos</label>
       <input type="number" id="campoCapitulos" min="1" placeholder="Ex: 12">
     </div>
+    <div class="field" id="camposExtrasWrap">
+      <label>Seções extras</label>
+      <div class="chip-row" id="extrasToggle">
+        <button type="button" class="chip extra-chip" data-extra="prefacio">Prefácio</button>
+        <button type="button" class="chip extra-chip" data-extra="introducao">Introdução</button>
+        <button type="button" class="chip extra-chip" data-extra="conclusao">Conclusão</button>
+      </div>
+    </div>
     <div class="field">
       <label>Tags</label>
       <div class="tag-input-row" id="tagInputRow">
@@ -680,10 +732,43 @@ function salvarEstado(){
 
 let estado = carregarEstado();
 let obraSelecionadaId = null;
+let capituloSelecionadoIdx = null;
 let tagsModalAtual = [];
 let editandoObraId = null;
 let filtroTipoAtivo = null;
 let filtrosTagAtivos = new Set();
+let extrasModalAtual = { prefacio:false, introducao:false, conclusao:false };
+
+const LABEL_SECAO = { prefacio:'Prefácio', introducao:'Introdução', conclusao:'Conclusão' };
+const BADGE_SECAO = { prefacio:'P', introducao:'I', conclusao:'C' };
+
+function labelCapitulo(cap){
+  const tipo = cap.tipo || 'capitulo';
+  return tipo === 'capitulo' ? ('Capítulo ' + cap.numero) : LABEL_SECAO[tipo];
+}
+function badgeCapitulo(cap){
+  const tipo = cap.tipo || 'capitulo';
+  return tipo === 'capitulo' ? cap.numero : BADGE_SECAO[tipo];
+}
+function previewCapitulo(cap){
+  const texto = (cap.resumo || cap.comentario || '').trim();
+  if(!texto) return 'Sem notas ainda';
+  return escapeHtml(texto.length > 70 ? texto.slice(0,70) + '…' : texto);
+}
+function construirCapitulos(numCap, extras, capsAntigos){
+  capsAntigos = capsAntigos || [];
+  const achar = (tipo) => capsAntigos.find(c => (c.tipo||'capitulo') === tipo);
+  const acharCap = (numero) => capsAntigos.find(c => (c.tipo||'capitulo')==='capitulo' && c.numero===numero);
+  const resultado = [];
+  if(extras.prefacio) resultado.push(achar('prefacio') || { tipo:'prefacio', numero:null, resumo:'', comentario:'' });
+  if(extras.introducao) resultado.push(achar('introducao') || { tipo:'introducao', numero:null, resumo:'', comentario:'' });
+  const total = Math.max(1, numCap || 1);
+  for(let i=1;i<=total;i++){
+    resultado.push(acharCap(i) || { tipo:'capitulo', numero:i, resumo:'', comentario:'' });
+  }
+  if(extras.conclusao) resultado.push(achar('conclusao') || { tipo:'conclusao', numero:null, resumo:'', comentario:'' });
+  return resultado;
+}
 
 function uid(){ return 'o' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
@@ -760,7 +845,7 @@ function renderLista(){
     </div>
   `).join('');
   cont.querySelectorAll('.obra-item').forEach(el=>{
-    el.addEventListener('click', ()=>{ obraSelecionadaId = el.dataset.id; renderTudo(); });
+    el.addEventListener('click', ()=>{ obraSelecionadaId = el.dataset.id; capituloSelecionadoIdx = null; renderTudo(); });
   });
 }
 
@@ -782,15 +867,31 @@ function renderDetalhe(){
 
   let corpoHtml = '';
   if(obra.tipo === 'livro'){
-    corpoHtml = '<div class="capitulos-wrap">' + obra.capitulos.map((cap, i) => `
-      <div class="capitulo-card">
-        <h3><span class="cap-num-badge">${cap.numero}</span> Capítulo ${cap.numero}</h3>
-        <div class="campo-label">Resumo</div>
-        <textarea class="nota-field" data-idx="${i}" data-campo="resumo" placeholder="Do que trata este capítulo…">${escapeHtml(cap.resumo||'')}</textarea>
-        <div class="campo-label">Comentário</div>
-        <textarea class="nota-field" data-idx="${i}" data-campo="comentario" placeholder="Suas impressões, citações, conexões…">${escapeHtml(cap.comentario||'')}</textarea>
-      </div>
-    `).join('') + '</div>';
+    if(capituloSelecionadoIdx === null){
+      corpoHtml = '<div class="capitulos-lista">' + obra.capitulos.map((cap, i) => `
+        <div class="capitulo-link" data-idx="${i}">
+          <span class="cap-num-badge">${badgeCapitulo(cap)}</span>
+          <span class="cap-link-titulo">${labelCapitulo(cap)}</span>
+          <span class="cap-link-preview">${previewCapitulo(cap)}</span>
+          <svg class="cap-link-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </div>
+      `).join('') + '</div>';
+    } else {
+      const cap = obra.capitulos[capituloSelecionadoIdx];
+      corpoHtml = `
+        <button class="btn-voltar" id="btnVoltarCapitulos">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          Voltar aos capítulos
+        </button>
+        <div class="capitulo-card">
+          <h3><span class="cap-num-badge">${badgeCapitulo(cap)}</span> ${labelCapitulo(cap)}</h3>
+          <div class="campo-label">Resumo</div>
+          <textarea class="nota-field" data-idx="${capituloSelecionadoIdx}" data-campo="resumo" placeholder="Do que trata esta seção…">${escapeHtml(cap.resumo||'')}</textarea>
+          <div class="campo-label">Comentário</div>
+          <textarea class="nota-field" data-idx="${capituloSelecionadoIdx}" data-campo="comentario" placeholder="Suas impressões, citações, conexões…">${escapeHtml(cap.comentario||'')}</textarea>
+        </div>
+      `;
+    }
   } else {
     corpoHtml = `
       <div class="nota-livre-card">
@@ -827,14 +928,27 @@ function renderDetalhe(){
   document.getElementById('btnExcluirObra').addEventListener('click', ()=>excluirObra(obra.id));
 
   if(obra.tipo === 'livro'){
-    detalhe.querySelectorAll('.nota-field').forEach(ta=>{
-      ta.addEventListener('input', ()=>{
-        const idx = Number(ta.dataset.idx);
-        const campo = ta.dataset.campo;
-        obra.capitulos[idx][campo] = ta.value;
-        salvarEstado();
+    if(capituloSelecionadoIdx === null){
+      detalhe.querySelectorAll('.capitulo-link').forEach(el=>{
+        el.addEventListener('click', ()=>{
+          capituloSelecionadoIdx = Number(el.dataset.idx);
+          renderDetalhe();
+        });
       });
-    });
+    } else {
+      document.getElementById('btnVoltarCapitulos').addEventListener('click', ()=>{
+        capituloSelecionadoIdx = null;
+        renderDetalhe();
+      });
+      detalhe.querySelectorAll('.nota-field').forEach(ta=>{
+        ta.addEventListener('input', ()=>{
+          const idx = Number(ta.dataset.idx);
+          const campo = ta.dataset.campo;
+          obra.capitulos[idx][campo] = ta.value;
+          salvarEstado();
+        });
+      });
+    }
   } else {
     const campo = document.getElementById('notaLivreField');
     campo.addEventListener('input', ()=>{
@@ -874,11 +988,13 @@ function abrirModalNova(){
   editandoObraId = null;
   tipoModalAtual = 'livro';
   tagsModalAtual = [];
+  extrasModalAtual = { prefacio:false, introducao:false, conclusao:false };
   document.getElementById('modalTitulo').textContent = 'Nova obra';
   document.getElementById('campoTitulo').value = '';
   document.getElementById('campoAutor').value = '';
   document.getElementById('campoCapitulos').value = '';
   atualizarTipoToggleUI();
+  atualizarExtrasToggleUI();
   renderTagsModal();
   modalOverlay.classList.add('open');
   document.getElementById('campoTitulo').focus();
@@ -888,11 +1004,19 @@ function abrirModalEdicao(obra){
   editandoObraId = obra.id;
   tipoModalAtual = obra.tipo;
   tagsModalAtual = [...(obra.tags||[])];
+  const caps = obra.tipo==='livro' ? (obra.capitulos||[]) : [];
+  extrasModalAtual = {
+    prefacio: caps.some(c=>c.tipo==='prefacio'),
+    introducao: caps.some(c=>c.tipo==='introducao'),
+    conclusao: caps.some(c=>c.tipo==='conclusao')
+  };
+  const numCapitulosAtuais = caps.filter(c=>(c.tipo||'capitulo')==='capitulo').length;
   document.getElementById('modalTitulo').textContent = 'Editar obra';
   document.getElementById('campoTitulo').value = obra.titulo;
   document.getElementById('campoAutor').value = obra.autor || '';
-  document.getElementById('campoCapitulos').value = obra.tipo==='livro' ? (obra.capitulos?.length || '') : '';
+  document.getElementById('campoCapitulos').value = obra.tipo==='livro' ? (numCapitulosAtuais || '') : '';
   atualizarTipoToggleUI();
+  atualizarExtrasToggleUI();
   renderTagsModal();
   modalOverlay.classList.add('open');
 }
@@ -904,12 +1028,27 @@ function atualizarTipoToggleUI(){
     b.classList.toggle('active', b.dataset.tipo === tipoModalAtual);
   });
   document.getElementById('campoCapitulosWrap').style.display = tipoModalAtual==='livro' ? 'block' : 'none';
+  document.getElementById('camposExtrasWrap').style.display = tipoModalAtual==='livro' ? 'block' : 'none';
+}
+
+function atualizarExtrasToggleUI(){
+  document.querySelectorAll('#extrasToggle .extra-chip').forEach(btn=>{
+    btn.classList.toggle('active-extra', !!extrasModalAtual[btn.dataset.extra]);
+  });
 }
 
 tipoToggle.querySelectorAll('button').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     tipoModalAtual = btn.dataset.tipo;
     atualizarTipoToggleUI();
+  });
+});
+
+document.querySelectorAll('#extrasToggle .extra-chip').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    const k = btn.dataset.extra;
+    extrasModalAtual[k] = !extrasModalAtual[k];
+    atualizarExtrasToggleUI();
   });
 });
 
@@ -957,19 +1096,15 @@ document.getElementById('btnSalvarObra').addEventListener('click', ()=>{
     obra.autor = autor;
     obra.tags = [...tagsModalAtual];
     if(tipoModalAtual === 'livro'){
-      const novoTotal = Math.max(1, numCap);
       const capsAtuais = obra.tipo==='livro' ? obra.capitulos : [];
-      const novosCaps = [];
-      for(let i=0;i<novoTotal;i++){
-        novosCaps.push(capsAtuais[i] || { numero:i+1, resumo:'', comentario:'' });
-      }
-      obra.capitulos = novosCaps;
+      obra.capitulos = construirCapitulos(numCap, extrasModalAtual, capsAtuais);
       delete obra.notaGeral;
     } else {
       obra.notaGeral = obra.notaGeral || '';
       delete obra.capitulos;
     }
     obra.tipo = tipoModalAtual;
+    capituloSelecionadoIdx = null;
     toast('Obra atualizada');
   } else {
     const novaObra = {
@@ -980,13 +1115,13 @@ document.getElementById('btnSalvarObra').addEventListener('click', ()=>{
       criadoEm: Date.now()
     };
     if(tipoModalAtual === 'livro'){
-      const total = Math.max(1, numCap || 1);
-      novaObra.capitulos = Array.from({length: total}, (_, i) => ({ numero:i+1, resumo:'', comentario:'' }));
+      novaObra.capitulos = construirCapitulos(numCap, extrasModalAtual, []);
     } else {
       novaObra.notaGeral = '';
     }
     estado.obras.push(novaObra);
     obraSelecionadaId = novaObra.id;
+    capituloSelecionadoIdx = null;
     toast('Obra adicionada');
   }
 
