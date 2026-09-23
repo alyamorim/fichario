@@ -7,7 +7,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%9A%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#FBF6EF;
@@ -282,7 +282,9 @@
     max-width:760px;
     margin:0 auto;
     padding:36px 40px 80px;
+    transition:max-width .15s;
   }
+  .obra-detail.wide-leitura{max-width:920px;}
   .obra-header{
     display:flex;
     justify-content:space-between;
@@ -407,6 +409,22 @@
     margin:12px 0 6px;
   }
   .campo-label:first-of-type{margin-top:0;}
+  .format-toolbar{
+    display:flex;
+    gap:6px;
+    margin-bottom:8px;
+  }
+  .format-btn{
+    width:32px;height:32px;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:var(--radius-sm);
+    border:1px solid var(--border);
+    background:#FFFFFF;
+    color:var(--ink-soft);
+    font-size:14px;
+    transition:border-color .12s,color .12s;
+  }
+  .format-btn:hover{border-color:var(--sage);color:var(--sage-ink);}
   textarea.nota-field{
     width:100%;
     min-height:64px;
@@ -442,6 +460,7 @@
 
   .nota-leitura{
     font-family:'Lora',serif;
+    font-weight:400;
     font-size:18.5px;
     line-height:1.9;
     color:var(--ink);
@@ -829,10 +848,30 @@ function badgeCapitulo(cap){
   const tipo = cap.tipo || 'capitulo';
   return tipo === 'capitulo' ? cap.numero : BADGE_SECAO[tipo];
 }
+function stripFormatacao(texto){
+  return texto.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*]+)\*/g, '$1');
+}
 function previewCapitulo(cap){
-  const texto = (cap.texto || '').trim();
+  const texto = stripFormatacao((cap.texto || '').trim());
   if(!texto) return 'Sem notas ainda';
   return escapeHtml(texto.length > 70 ? texto.slice(0,70) + '…' : texto);
+}
+function formatarTextoLeitura(texto){
+  let seguro = escapeHtml(texto);
+  seguro = seguro.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  seguro = seguro.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  return seguro;
+}
+function aplicarFormatacao(campo, marcador){
+  const inicio = campo.selectionStart;
+  const fim = campo.selectionEnd;
+  const valor = campo.value;
+  const selecionado = valor.slice(inicio, fim);
+  campo.value = valor.slice(0, inicio) + marcador + selecionado + marcador + valor.slice(fim);
+  campo.focus();
+  const novaPos = selecionado ? fim + marcador.length*2 : inicio + marcador.length;
+  campo.setSelectionRange(novaPos, novaPos);
+  campo.dispatchEvent(new Event('input'));
 }
 function migrarCapitulo(c){
   if(!c) return c;
@@ -970,7 +1009,7 @@ function renderDetalhe(){
       const modoLeitura = cap.salvo && (cap.texto||'').trim().length > 0;
       const corpoCapitulo = modoLeitura
         ? `
-          <div class="nota-leitura">${escapeHtml(cap.texto)}</div>
+          <div class="nota-leitura">${formatarTextoLeitura(cap.texto)}</div>
           <button class="btn-editar-nota" id="btnEditarCapitulo">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>
             Editar
@@ -978,6 +1017,10 @@ function renderDetalhe(){
         `
         : `
           <div class="campo-label">Resumo e impressões</div>
+          <div class="format-toolbar">
+            <button type="button" class="format-btn" id="btnNegrito" title="Negrito"><strong>B</strong></button>
+            <button type="button" class="format-btn" id="btnItalico" title="Itálico"><em>I</em></button>
+          </div>
           <textarea class="nota-field nota-field-grande" id="campoTextoCap" placeholder="Resuma o capítulo e registre suas impressões, citações, conexões…">${escapeHtml(cap.texto||'')}</textarea>
           <button class="btn-salvar-nota" id="btnSalvarCapitulo">Salvar</button>
         `;
@@ -1000,6 +1043,8 @@ function renderDetalhe(){
       </div>
     `;
   }
+
+  detalhe.classList.toggle('wide-leitura', obra.tipo==='livro' && capituloSelecionadoIdx !== null);
 
   detalhe.innerHTML = `
     <div class="obra-header">
@@ -1062,6 +1107,8 @@ function renderDetalhe(){
           renderDetalhe();
           toast('Notas salvas');
         });
+        document.getElementById('btnNegrito').addEventListener('click', ()=> aplicarFormatacao(campo, '**'));
+        document.getElementById('btnItalico').addEventListener('click', ()=> aplicarFormatacao(campo, '*'));
       }
     }
   } else {
