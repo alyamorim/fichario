@@ -7,7 +7,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%9A%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#FBF6EF;
@@ -48,7 +48,8 @@
     line-height:1.55;
     -webkit-font-smoothing:antialiased;
   }
-  h1,h2,h3,.brand,.btn,.chip,.tab{font-family:'Fredoka',sans-serif;}
+  h1,h2,h3,.brand,.obra-item .titulo,.cap-link-titulo{font-family:'Lora',serif;}
+  .chip{font-family:'Fredoka',sans-serif;}
 
   button{font-family:inherit;cursor:pointer;}
   input,textarea,select{font-family:inherit;}
@@ -245,6 +246,14 @@
     overflow-y:auto;
     position:relative;
   }
+  .main-watermark{
+    position:fixed;
+    top:22px;
+    right:28px;
+    opacity:0.32;
+    pointer-events:none;
+    z-index:1;
+  }
 
   .empty-state{
     height:100%;
@@ -413,6 +422,51 @@
     transition:border-color .15s;
   }
   textarea.nota-field:focus{border-color:var(--sage);}
+  textarea.nota-field-grande{min-height:280px;margin-bottom:12px;}
+
+  .btn-salvar-nota{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:9px 18px;
+    border-radius:var(--radius-md);
+    border:none;
+    background:var(--sage);
+    color:#25391F;
+    font-size:13.5px;
+    font-weight:700;
+    font-family:'Fredoka',sans-serif;
+    box-shadow:var(--shadow-sm);
+  }
+  .btn-salvar-nota:hover{box-shadow:var(--shadow-md);}
+
+  .nota-salva{
+    background:var(--sage-soft);
+    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    padding:16px 18px;
+  }
+  .nota-salva-texto{
+    white-space:pre-wrap;
+    color:var(--ink);
+    font-size:14.5px;
+    line-height:1.75;
+    margin-bottom:12px;
+  }
+  .btn-editar-nota{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:none;
+    border:1px solid var(--sage);
+    border-radius:999px;
+    padding:5px 13px;
+    color:var(--sage-ink);
+    font-size:12.5px;
+    font-weight:700;
+    font-family:'Fredoka',sans-serif;
+  }
+  .btn-editar-nota:hover{background:#FFFFFF;}
 
   .nota-livre-card{
     background:var(--card);
@@ -451,6 +505,11 @@
     overflow-y:auto;
   }
   .modal h2{font-size:19px;font-weight:600;margin:0 0 20px;}
+  .modal-h2-com-icone{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
   .field{margin-bottom:16px;}
   .field label{
     display:block;
@@ -629,6 +688,17 @@
 
   <!-- ================= MAIN ================= -->
   <main class="main" id="main">
+    <div class="main-watermark" aria-hidden="true">
+      <svg width="26" height="26" viewBox="0 0 48 48" fill="none">
+        <g stroke="#8FAF83" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 24 L9 40 L39 40 L37 24 Z"/>
+          <ellipse cx="24" cy="24" rx="13" ry="3"/>
+          <rect x="15" y="12" width="5" height="14" rx="1"/>
+          <rect x="22" y="9" width="5" height="17" rx="1"/>
+          <rect x="29" y="13" width="5" height="13" rx="1"/>
+        </g>
+      </svg>
+    </div>
     <div class="empty-state" id="emptyState">
       <svg width="190" height="190" viewBox="0 0 200 200" fill="none" opacity="0.8">
         <g stroke="#8FAF83" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
@@ -666,7 +736,18 @@
 <!-- ================= MODAL NOVA/EDITAR OBRA ================= -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
-    <h2 id="modalTitulo">Nova obra</h2>
+    <h2 class="modal-h2-com-icone">
+      <svg width="20" height="20" viewBox="0 0 48 48" fill="none">
+        <g stroke="#8A5A34" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 24 L9 40 L39 40 L37 24 Z"/>
+          <ellipse cx="24" cy="24" rx="13" ry="3"/>
+          <rect x="15" y="12" width="5" height="14" rx="1"/>
+          <rect x="22" y="9" width="5" height="17" rx="1"/>
+          <rect x="29" y="13" width="5" height="13" rx="1"/>
+        </g>
+      </svg>
+      <span id="modalTitulo">Nova obra</span>
+    </h2>
     <div class="field">
       <label>Tipo</label>
       <div class="tipo-toggle" id="tipoToggle">
@@ -878,6 +959,20 @@ function renderDetalhe(){
       `).join('') + '</div>';
     } else {
       const cap = obra.capitulos[capituloSelecionadoIdx];
+      const impressoesHtml = cap.comentarioSalvo
+        ? `
+          <div class="nota-salva">
+            <div class="nota-salva-texto">${escapeHtml(cap.comentario||'')}</div>
+            <button class="btn-editar-nota" id="btnEditarComentario">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>
+              Editar
+            </button>
+          </div>
+        `
+        : `
+          <textarea class="nota-field nota-field-grande" id="campoComentarioCap" placeholder="Suas impressões, citações, conexões…">${escapeHtml(cap.comentario||'')}</textarea>
+          <button class="btn-salvar-nota" id="btnSalvarComentario">Salvar impressões</button>
+        `;
       corpoHtml = `
         <button class="btn-voltar" id="btnVoltarCapitulos">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
@@ -886,9 +981,9 @@ function renderDetalhe(){
         <div class="capitulo-card">
           <h3><span class="cap-num-badge">${badgeCapitulo(cap)}</span> ${labelCapitulo(cap)}</h3>
           <div class="campo-label">Resumo</div>
-          <textarea class="nota-field" data-idx="${capituloSelecionadoIdx}" data-campo="resumo" placeholder="Do que trata esta seção…">${escapeHtml(cap.resumo||'')}</textarea>
-          <div class="campo-label">Comentário</div>
-          <textarea class="nota-field" data-idx="${capituloSelecionadoIdx}" data-campo="comentario" placeholder="Suas impressões, citações, conexões…">${escapeHtml(cap.comentario||'')}</textarea>
+          <textarea class="nota-field" id="campoResumoCap" placeholder="Do que trata esta seção…">${escapeHtml(cap.resumo||'')}</textarea>
+          <div class="campo-label">Impressões</div>
+          ${impressoesHtml}
         </div>
       `;
     }
@@ -940,14 +1035,34 @@ function renderDetalhe(){
         capituloSelecionadoIdx = null;
         renderDetalhe();
       });
-      detalhe.querySelectorAll('.nota-field').forEach(ta=>{
-        ta.addEventListener('input', ()=>{
-          const idx = Number(ta.dataset.idx);
-          const campo = ta.dataset.campo;
-          obra.capitulos[idx][campo] = ta.value;
+      const cap = obra.capitulos[capituloSelecionadoIdx];
+
+      const resumoField = document.getElementById('campoResumoCap');
+      resumoField.addEventListener('input', ()=>{
+        cap.resumo = resumoField.value;
+        salvarEstado();
+      });
+
+      if(cap.comentarioSalvo){
+        document.getElementById('btnEditarComentario').addEventListener('click', ()=>{
+          cap.comentarioSalvo = false;
+          salvarEstado();
+          renderDetalhe();
+        });
+      } else {
+        const comentarioField = document.getElementById('campoComentarioCap');
+        comentarioField.addEventListener('input', ()=>{
+          cap.comentario = comentarioField.value;
           salvarEstado();
         });
-      });
+        document.getElementById('btnSalvarComentario').addEventListener('click', ()=>{
+          cap.comentario = comentarioField.value;
+          cap.comentarioSalvo = true;
+          salvarEstado();
+          renderDetalhe();
+          toast('Impressões salvas');
+        });
+      }
     }
   } else {
     const campo = document.getElementById('notaLivreField');
