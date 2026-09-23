@@ -440,33 +440,31 @@
   }
   .btn-salvar-nota:hover{box-shadow:var(--shadow-md);}
 
-  .nota-salva{
-    background:var(--sage-soft);
-    border:1px solid var(--border);
-    border-radius:var(--radius-sm);
-    padding:16px 18px;
-  }
-  .nota-salva-texto{
-    white-space:pre-wrap;
+  .nota-leitura{
+    font-family:'Lora',serif;
+    font-size:18.5px;
+    line-height:1.9;
     color:var(--ink);
-    font-size:14.5px;
-    line-height:1.75;
-    margin-bottom:12px;
+    white-space:pre-wrap;
+    margin-bottom:26px;
   }
+  .capitulo-card.modo-leitura{padding:34px 38px;}
   .btn-editar-nota{
-    display:inline-flex;
+    display:flex;
     align-items:center;
+    justify-content:flex-end;
     gap:6px;
+    width:100%;
     background:none;
-    border:1px solid var(--sage);
-    border-radius:999px;
-    padding:5px 13px;
-    color:var(--sage-ink);
-    font-size:12.5px;
-    font-weight:700;
+    border:none;
+    border-top:1px solid var(--border);
+    padding-top:16px;
+    color:var(--ink-faint);
+    font-size:13px;
+    font-weight:600;
     font-family:'Fredoka',sans-serif;
   }
-  .btn-editar-nota:hover{background:#FFFFFF;}
+  .btn-editar-nota:hover{color:var(--sage-ink);}
 
   .nota-livre-card{
     background:var(--card);
@@ -832,22 +830,32 @@ function badgeCapitulo(cap){
   return tipo === 'capitulo' ? cap.numero : BADGE_SECAO[tipo];
 }
 function previewCapitulo(cap){
-  const texto = (cap.resumo || cap.comentario || '').trim();
+  const texto = (cap.texto || '').trim();
   if(!texto) return 'Sem notas ainda';
   return escapeHtml(texto.length > 70 ? texto.slice(0,70) + '…' : texto);
 }
+function migrarCapitulo(c){
+  if(!c) return c;
+  if(c.texto === undefined){
+    const partes = [c.resumo, c.comentario].filter(t => t && t.trim());
+    c.texto = partes.join('\n\n');
+    c.salvo = !!c.comentarioSalvo;
+    delete c.resumo; delete c.comentario; delete c.comentarioSalvo;
+  }
+  return c;
+}
 function construirCapitulos(numCap, extras, capsAntigos){
   capsAntigos = capsAntigos || [];
-  const achar = (tipo) => capsAntigos.find(c => (c.tipo||'capitulo') === tipo);
-  const acharCap = (numero) => capsAntigos.find(c => (c.tipo||'capitulo')==='capitulo' && c.numero===numero);
+  const achar = (tipo) => migrarCapitulo(capsAntigos.find(c => (c.tipo||'capitulo') === tipo));
+  const acharCap = (numero) => migrarCapitulo(capsAntigos.find(c => (c.tipo||'capitulo')==='capitulo' && c.numero===numero));
   const resultado = [];
-  if(extras.prefacio) resultado.push(achar('prefacio') || { tipo:'prefacio', numero:null, resumo:'', comentario:'' });
-  if(extras.introducao) resultado.push(achar('introducao') || { tipo:'introducao', numero:null, resumo:'', comentario:'' });
+  if(extras.prefacio) resultado.push(achar('prefacio') || { tipo:'prefacio', numero:null, texto:'', salvo:false });
+  if(extras.introducao) resultado.push(achar('introducao') || { tipo:'introducao', numero:null, texto:'', salvo:false });
   const total = Math.max(1, numCap || 1);
   for(let i=1;i<=total;i++){
-    resultado.push(acharCap(i) || { tipo:'capitulo', numero:i, resumo:'', comentario:'' });
+    resultado.push(acharCap(i) || { tipo:'capitulo', numero:i, texto:'', salvo:false });
   }
-  if(extras.conclusao) resultado.push(achar('conclusao') || { tipo:'conclusao', numero:null, resumo:'', comentario:'' });
+  if(extras.conclusao) resultado.push(achar('conclusao') || { tipo:'conclusao', numero:null, texto:'', salvo:false });
   return resultado;
 }
 
@@ -959,31 +967,28 @@ function renderDetalhe(){
       `).join('') + '</div>';
     } else {
       const cap = obra.capitulos[capituloSelecionadoIdx];
-      const impressoesHtml = cap.comentarioSalvo
+      const modoLeitura = cap.salvo && (cap.texto||'').trim().length > 0;
+      const corpoCapitulo = modoLeitura
         ? `
-          <div class="nota-salva">
-            <div class="nota-salva-texto">${escapeHtml(cap.comentario||'')}</div>
-            <button class="btn-editar-nota" id="btnEditarComentario">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>
-              Editar
-            </button>
-          </div>
+          <div class="nota-leitura">${escapeHtml(cap.texto)}</div>
+          <button class="btn-editar-nota" id="btnEditarCapitulo">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>
+            Editar
+          </button>
         `
         : `
-          <textarea class="nota-field nota-field-grande" id="campoComentarioCap" placeholder="Suas impressões, citações, conexões…">${escapeHtml(cap.comentario||'')}</textarea>
-          <button class="btn-salvar-nota" id="btnSalvarComentario">Salvar impressões</button>
+          <div class="campo-label">Resumo e impressões</div>
+          <textarea class="nota-field nota-field-grande" id="campoTextoCap" placeholder="Resuma o capítulo e registre suas impressões, citações, conexões…">${escapeHtml(cap.texto||'')}</textarea>
+          <button class="btn-salvar-nota" id="btnSalvarCapitulo">Salvar</button>
         `;
       corpoHtml = `
         <button class="btn-voltar" id="btnVoltarCapitulos">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
           Voltar aos capítulos
         </button>
-        <div class="capitulo-card">
+        <div class="capitulo-card ${modoLeitura?'modo-leitura':''}">
           <h3><span class="cap-num-badge">${badgeCapitulo(cap)}</span> ${labelCapitulo(cap)}</h3>
-          <div class="campo-label">Resumo</div>
-          <textarea class="nota-field" id="campoResumoCap" placeholder="Do que trata esta seção…">${escapeHtml(cap.resumo||'')}</textarea>
-          <div class="campo-label">Impressões</div>
-          ${impressoesHtml}
+          ${corpoCapitulo}
         </div>
       `;
     }
@@ -1036,31 +1041,26 @@ function renderDetalhe(){
         renderDetalhe();
       });
       const cap = obra.capitulos[capituloSelecionadoIdx];
+      const modoLeitura = cap.salvo && (cap.texto||'').trim().length > 0;
 
-      const resumoField = document.getElementById('campoResumoCap');
-      resumoField.addEventListener('input', ()=>{
-        cap.resumo = resumoField.value;
-        salvarEstado();
-      });
-
-      if(cap.comentarioSalvo){
-        document.getElementById('btnEditarComentario').addEventListener('click', ()=>{
-          cap.comentarioSalvo = false;
+      if(modoLeitura){
+        document.getElementById('btnEditarCapitulo').addEventListener('click', ()=>{
+          cap.salvo = false;
           salvarEstado();
           renderDetalhe();
         });
       } else {
-        const comentarioField = document.getElementById('campoComentarioCap');
-        comentarioField.addEventListener('input', ()=>{
-          cap.comentario = comentarioField.value;
+        const campo = document.getElementById('campoTextoCap');
+        campo.addEventListener('input', ()=>{
+          cap.texto = campo.value;
           salvarEstado();
         });
-        document.getElementById('btnSalvarComentario').addEventListener('click', ()=>{
-          cap.comentario = comentarioField.value;
-          cap.comentarioSalvo = true;
+        document.getElementById('btnSalvarCapitulo').addEventListener('click', ()=>{
+          cap.texto = campo.value;
+          cap.salvo = true;
           salvarEstado();
           renderDetalhe();
-          toast('Impressões salvas');
+          toast('Notas salvas');
         });
       }
     }
