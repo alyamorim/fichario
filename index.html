@@ -325,6 +325,7 @@
   }
   .tag-cloud-item:hover{background:var(--lavender-soft);}
   .tag-cloud-item.active{background:var(--sage-soft);color:var(--sage-ink);}
+  .tag-cloud-vazia{color:var(--ink-faint);font-size:13.5px;font-family:'Nunito',sans-serif;font-weight:400;}
 
   .fichas-grid{
     display:grid;
@@ -567,6 +568,7 @@
     box-shadow:var(--shadow-sm);
   }
   .nota-livre-card textarea{min-height:340px;}
+  .nota-livre-card.modo-leitura{padding:34px 38px;}
 
   .save-hint{
     font-size:12px;
@@ -1083,7 +1085,11 @@ function renderHome(){
         return `<button type="button" class="tag-cloud-item ${ativa?'active':''}" data-tag="${escapeHtml(t)}" style="font-size:${tamanho}px">#${escapeHtml(t)}</button>`;
       }).join('')}
     </div>
-  ` : '';
+  ` : `
+    <div class="tag-cloud tag-cloud-vazia">
+      <span>Adicione tags às suas obras para elas aparecerem aqui como uma nuvem de tags.</span>
+    </div>
+  `;
 
   const obrasHome = obrasFiltradas();
   const gradeHtml = obrasHome.length ? `
@@ -1211,15 +1217,34 @@ function renderDetalhe(){
       `;
     }
   } else {
-    corpoHtml = `
-      <div class="nota-livre-card">
-        <div class="campo-label">Fichamento / impressões</div>
-        <textarea class="nota-field" id="notaLivreField" placeholder="Registre aqui suas notas de leitura…">${escapeHtml(obra.notaGeral||'')}</textarea>
-      </div>
-    `;
+    const modoLeitura = obra.notaSalva && (obra.notaGeral||'').trim().length > 0;
+    corpoHtml = modoLeitura
+      ? `
+        <div class="nota-livre-card modo-leitura">
+          <div class="nota-leitura ${obra.notaJustificada?'justificado':''}">${formatarTextoLeitura(obra.notaGeral)}</div>
+          <button class="btn-editar-nota" id="btnEditarNotaLivre">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>
+            Editar
+          </button>
+        </div>
+      `
+      : `
+        <div class="nota-livre-card">
+          <div class="campo-label">Fichamento / impressões</div>
+          <div class="format-toolbar">
+            <button type="button" class="format-btn" id="btnNegritoLivre" title="Negrito"><strong>B</strong></button>
+            <button type="button" class="format-btn" id="btnItalicoLivre" title="Itálico"><em>I</em></button>
+            <button type="button" class="format-btn ${obra.notaJustificada?'active-format':''}" id="btnJustificarLivre" title="Justificar texto">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+            </button>
+          </div>
+          <textarea class="nota-field" id="notaLivreField" placeholder="Registre aqui suas notas de leitura…">${escapeHtml(obra.notaGeral||'')}</textarea>
+          <button class="btn-salvar-nota" id="btnSalvarNotaLivre">Salvar</button>
+        </div>
+      `;
   }
 
-  detalhe.classList.toggle('wide-leitura', obra.tipo==='livro' && capituloSelecionadoIdx !== null);
+  detalhe.classList.toggle('wide-leitura', (obra.tipo==='livro' && capituloSelecionadoIdx !== null) || obra.tipo!=='livro');
 
   detalhe.innerHTML = `
     <div class="obra-header">
@@ -1292,11 +1317,34 @@ function renderDetalhe(){
       }
     }
   } else {
-    const campo = document.getElementById('notaLivreField');
-    campo.addEventListener('input', ()=>{
-      obra.notaGeral = campo.value;
-      salvarEstado();
-    });
+    const modoLeitura = obra.notaSalva && (obra.notaGeral||'').trim().length > 0;
+    if(modoLeitura){
+      document.getElementById('btnEditarNotaLivre').addEventListener('click', ()=>{
+        obra.notaSalva = false;
+        salvarEstado();
+        renderDetalhe();
+      });
+    } else {
+      const campo = document.getElementById('notaLivreField');
+      campo.addEventListener('input', ()=>{
+        obra.notaGeral = campo.value;
+        salvarEstado();
+      });
+      document.getElementById('btnSalvarNotaLivre').addEventListener('click', ()=>{
+        obra.notaGeral = campo.value;
+        obra.notaSalva = true;
+        salvarEstado();
+        renderDetalhe();
+        toast('Notas salvas');
+      });
+      document.getElementById('btnNegritoLivre').addEventListener('click', ()=> aplicarFormatacao(campo, '**'));
+      document.getElementById('btnItalicoLivre').addEventListener('click', ()=> aplicarFormatacao(campo, '*'));
+      document.getElementById('btnJustificarLivre').addEventListener('click', (e)=>{
+        obra.notaJustificada = !obra.notaJustificada;
+        e.currentTarget.classList.toggle('active-format', obra.notaJustificada);
+        salvarEstado();
+      });
+    }
   }
 }
 
@@ -1441,8 +1489,12 @@ document.getElementById('btnSalvarObra').addEventListener('click', ()=>{
       const capsAtuais = obra.tipo==='livro' ? obra.capitulos : [];
       obra.capitulos = construirCapitulos(numCap, extrasModalAtual, capsAtuais);
       delete obra.notaGeral;
+      delete obra.notaSalva;
+      delete obra.notaJustificada;
     } else {
       obra.notaGeral = obra.notaGeral || '';
+      obra.notaSalva = !!obra.notaSalva;
+      obra.notaJustificada = !!obra.notaJustificada;
       delete obra.capitulos;
     }
     obra.tipo = tipoModalAtual;
@@ -1460,6 +1512,8 @@ document.getElementById('btnSalvarObra').addEventListener('click', ()=>{
       novaObra.capitulos = construirCapitulos(numCap, extrasModalAtual, []);
     } else {
       novaObra.notaGeral = '';
+      novaObra.notaSalva = false;
+      novaObra.notaJustificada = false;
     }
     estado.obras.push(novaObra);
     obraSelecionadaId = novaObra.id;
