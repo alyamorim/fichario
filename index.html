@@ -76,7 +76,10 @@
     font-size:22px;
     font-weight:600;
     color:var(--ink);
+    cursor:pointer;
+    transition:opacity .12s;
   }
+  .brand:hover{opacity:0.75;}
   .brand svg{flex-shrink:0;}
 
   .sidebar-body{
@@ -256,6 +259,9 @@
   }
 
   .empty-state{
+    display:none;
+  }
+  .empty-state.state-empty{
     height:100%;
     display:flex;
     flex-direction:column;
@@ -263,20 +269,86 @@
     justify-content:center;
     text-align:center;
     padding:40px;
-    position:relative;
   }
-  .empty-state h2{
+  .empty-state.state-empty h2{
     font-size:22px;
     font-weight:600;
     margin:18px 0 6px;
     color:var(--ink);
   }
-  .empty-state p{
+  .empty-state.state-empty p{
     color:var(--ink-soft);
     font-size:14.5px;
     max-width:320px;
     margin:0;
   }
+
+  .empty-state.state-dashboard{
+    display:block;
+    max-width:920px;
+    margin:0 auto;
+    padding:36px 40px 80px;
+  }
+  .home-header{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    margin-bottom:30px;
+  }
+  .home-header h2{
+    font-size:24px;
+    font-weight:600;
+    margin:0 0 4px;
+    color:var(--ink);
+  }
+  .home-subtitle{margin:0;color:var(--ink-soft);font-size:14px;}
+
+  .tag-cloud{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px 18px;
+    align-items:baseline;
+    margin-bottom:32px;
+    padding-bottom:26px;
+    border-bottom:1px solid var(--border);
+  }
+  .tag-cloud-item{
+    background:none;
+    border:none;
+    color:var(--lavender-ink);
+    font-family:'Fredoka',sans-serif;
+    font-weight:600;
+    line-height:1.2;
+    padding:3px 6px;
+    border-radius:8px;
+    transition:color .12s, background .12s;
+  }
+  .tag-cloud-item:hover{background:var(--lavender-soft);}
+  .tag-cloud-item.active{background:var(--sage-soft);color:var(--sage-ink);}
+
+  .fichas-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(210px,1fr));
+    gap:16px;
+  }
+  .ficha-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    padding:16px 18px;
+    cursor:pointer;
+    transition:border-color .12s, box-shadow .12s;
+  }
+  .ficha-card:hover{border-color:var(--sage);box-shadow:var(--shadow-sm);}
+  .ficha-titulo{
+    font-family:'Lora',serif;
+    font-weight:600;
+    font-size:16px;
+    color:var(--ink);
+    margin:9px 0 2px;
+  }
+  .ficha-autor{font-size:12.5px;color:var(--ink-soft);margin-bottom:9px;}
+  .ficha-tags{display:flex;flex-wrap:wrap;gap:6px;}
 
   .obra-detail{
     max-width:760px;
@@ -425,6 +497,7 @@
     transition:border-color .12s,color .12s;
   }
   .format-btn:hover{border-color:var(--sage);color:var(--sage-ink);}
+  .format-btn.active-format{background:var(--sage-soft);border-color:var(--sage);color:var(--sage-ink);}
   textarea.nota-field{
     width:100%;
     min-height:64px;
@@ -467,6 +540,7 @@
     white-space:pre-wrap;
     margin-bottom:26px;
   }
+  .nota-leitura.justificado{text-align:justify;}
   .capitulo-card.modo-leitura{padding:34px 38px;}
   .btn-editar-nota{
     display:flex;
@@ -526,6 +600,12 @@
     display:flex;
     align-items:center;
     gap:10px;
+  }
+  .modal-texto{
+    font-size:14.5px;
+    line-height:1.65;
+    color:var(--ink-soft);
+    margin:0 0 22px;
   }
   .field{margin-bottom:16px;}
   .field label{
@@ -653,7 +733,7 @@
 <div class="app">
   <!-- ================= SIDEBAR ================= -->
   <aside class="sidebar">
-    <div class="brand">
+    <div class="brand" id="brandLogo" title="Voltar à página inicial">
       <svg width="28" height="28" viewBox="0 0 48 48" fill="none">
         <g stroke="#8A5A34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M11 24 L9 40 L39 40 L37 24 Z"/>
@@ -716,38 +796,25 @@
         </g>
       </svg>
     </div>
-    <div class="empty-state" id="emptyState">
-      <svg width="190" height="190" viewBox="0 0 200 200" fill="none" opacity="0.8">
-        <g stroke="#8FAF83" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M48 102 L42 168 L158 168 L152 102 Z"/>
-          <ellipse cx="100" cy="102" rx="52" ry="10"/>
-        </g>
-        <g stroke="#453C33" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="83" y="140" width="34" height="16" rx="2.5"/>
-          <line x1="89" y1="148" x2="111" y2="148"/>
-        </g>
-        <g stroke="#B9A6E3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="63" y="52" width="15" height="52" rx="2"/>
-          <line x1="63" y1="64" x2="78" y2="64"/>
-        </g>
-        <g stroke="#F3B991" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M82 100 L82 58 L100 58 L106 66 L106 100 Z"/>
-        </g>
-        <g stroke="#8FAF83" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="110" y="46" width="15" height="58" rx="2"/>
-          <line x1="110" y1="60" x2="125" y2="60"/>
-          <line x1="110" y1="68" x2="125" y2="68"/>
-        </g>
-        <g stroke="#B9A6E3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" transform="rotate(8 132 100)">
-          <rect x="129" y="62" width="14" height="44" rx="2"/>
-        </g>
-      </svg>
-      <h2>Seu fichário está vazio</h2>
-      <p>Adicione um livro, ensaio ou artigo para começar a registrar fichamentos e impressões de leitura.</p>
-    </div>
+    <div class="empty-state" id="emptyState"></div>
 
     <div class="obra-detail" id="obraDetail" style="display:none;"></div>
   </main>
+</div>
+
+<!-- ================= MODAL CONECTAR AO DRIVE (automático ao abrir) ================= -->
+<div class="modal-overlay" id="modalConectarOverlay">
+  <div class="modal">
+    <h2 class="modal-h2-com-icone">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8A5A34" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-3-6.7M21 4v5h-5"/></svg>
+      <span>Conectar ao Google Drive</span>
+    </h2>
+    <p class="modal-texto">Para evitar que alterações fiquem só neste navegador, conecte sua conta do Google antes de começar a editar. Suas notas passam a ser salvas também no Drive a cada mudança.</p>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="btnPularConexao">Continuar sem sincronizar</button>
+      <button class="btn-primary" id="btnConectarAgora">Conectar</button>
+    </div>
+  </div>
 </div>
 
 <!-- ================= MODAL NOVA/EDITAR OBRA ================= -->
@@ -888,13 +955,13 @@ function construirCapitulos(numCap, extras, capsAntigos){
   const achar = (tipo) => migrarCapitulo(capsAntigos.find(c => (c.tipo||'capitulo') === tipo));
   const acharCap = (numero) => migrarCapitulo(capsAntigos.find(c => (c.tipo||'capitulo')==='capitulo' && c.numero===numero));
   const resultado = [];
-  if(extras.prefacio) resultado.push(achar('prefacio') || { tipo:'prefacio', numero:null, texto:'', salvo:false });
-  if(extras.introducao) resultado.push(achar('introducao') || { tipo:'introducao', numero:null, texto:'', salvo:false });
+  if(extras.prefacio) resultado.push(achar('prefacio') || { tipo:'prefacio', numero:null, texto:'', salvo:false, justificado:false });
+  if(extras.introducao) resultado.push(achar('introducao') || { tipo:'introducao', numero:null, texto:'', salvo:false, justificado:false });
   const total = Math.max(1, numCap || 1);
   for(let i=1;i<=total;i++){
-    resultado.push(acharCap(i) || { tipo:'capitulo', numero:i, texto:'', salvo:false });
+    resultado.push(acharCap(i) || { tipo:'capitulo', numero:i, texto:'', salvo:false, justificado:false });
   }
-  if(extras.conclusao) resultado.push(achar('conclusao') || { tipo:'conclusao', numero:null, texto:'', salvo:false });
+  if(extras.conclusao) resultado.push(achar('conclusao') || { tipo:'conclusao', numero:null, texto:'', salvo:false, justificado:false });
   return resultado;
 }
 
@@ -955,6 +1022,111 @@ function obrasFiltradas(){
 
 const TIPO_LABEL = { livro:'Livro', ensaio:'Ensaio', artigo:'Artigo' };
 
+const SVG_FICHARIO_MIOLO = `
+  <g stroke="#8FAF83" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M48 102 L42 168 L158 168 L152 102 Z"/>
+    <ellipse cx="100" cy="102" rx="52" ry="10"/>
+  </g>
+  <g stroke="#453C33" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="83" y="140" width="34" height="16" rx="2.5"/>
+    <line x1="89" y1="148" x2="111" y2="148"/>
+  </g>
+  <g stroke="#B9A6E3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="63" y="52" width="15" height="52" rx="2"/>
+    <line x1="63" y1="64" x2="78" y2="64"/>
+  </g>
+  <g stroke="#F3B991" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M82 100 L82 58 L100 58 L106 66 L106 100 Z"/>
+  </g>
+  <g stroke="#8FAF83" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="110" y="46" width="15" height="58" rx="2"/>
+    <line x1="110" y1="60" x2="125" y2="60"/>
+    <line x1="110" y1="68" x2="125" y2="68"/>
+  </g>
+  <g stroke="#B9A6E3" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" transform="rotate(8 132 100)">
+    <rect x="129" y="62" width="14" height="44" rx="2"/>
+  </g>
+`;
+
+function contarTags(){
+  const counts = {};
+  estado.obras.forEach(o => (o.tags||[]).forEach(t => { counts[t] = (counts[t]||0) + 1; }));
+  return counts;
+}
+
+function renderHome(){
+  const empty = document.getElementById('emptyState');
+
+  if(estado.obras.length === 0){
+    empty.classList.remove('state-dashboard');
+    empty.classList.add('state-empty');
+    empty.innerHTML = `
+      <svg width="190" height="190" viewBox="0 0 200 200" fill="none" opacity="0.8">${SVG_FICHARIO_MIOLO}</svg>
+      <h2>Seu fichário está vazio</h2>
+      <p>Adicione um livro, ensaio ou artigo para começar a registrar fichamentos e impressões de leitura.</p>
+    `;
+    return;
+  }
+
+  empty.classList.remove('state-empty');
+  empty.classList.add('state-dashboard');
+
+  const counts = contarTags();
+  const tags = Object.keys(counts).sort();
+  const maxCount = Math.max(1, ...Object.values(counts));
+
+  const nuvemHtml = tags.length ? `
+    <div class="tag-cloud">
+      ${tags.map(t => {
+        const tamanho = Math.round(13 + (counts[t]/maxCount) * 15);
+        const ativa = filtrosTagAtivos.has(t);
+        return `<button type="button" class="tag-cloud-item ${ativa?'active':''}" data-tag="${escapeHtml(t)}" style="font-size:${tamanho}px">#${escapeHtml(t)}</button>`;
+      }).join('')}
+    </div>
+  ` : '';
+
+  const obrasHome = obrasFiltradas();
+  const gradeHtml = obrasHome.length ? `
+    <div class="fichas-grid">
+      ${obrasHome.map(o => `
+        <div class="ficha-card" data-id="${o.id}">
+          <span class="tipo-badge ${o.tipo}">${TIPO_LABEL[o.tipo]}</span>
+          <div class="ficha-titulo">${escapeHtml(o.titulo)}</div>
+          <div class="ficha-autor">${escapeHtml(o.autor || 'Autor não informado')}</div>
+          ${(o.tags||[]).length ? `<div class="ficha-tags">${(o.tags||[]).map(t=>`<span class="tag-mini">#${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  ` : '<div class="empty-lista">Nenhuma obra encontrada com os filtros atuais.</div>';
+
+  empty.innerHTML = `
+    <div class="home-header">
+      <svg width="66" height="66" viewBox="0 0 200 200" fill="none">${SVG_FICHARIO_MIOLO}</svg>
+      <div>
+        <h2>Seu fichário</h2>
+        <p class="home-subtitle">${estado.obras.length} obra${estado.obras.length>1?'s':''} catalogada${estado.obras.length>1?'s':''}</p>
+      </div>
+    </div>
+    ${nuvemHtml}
+    ${gradeHtml}
+  `;
+
+  empty.querySelectorAll('.tag-cloud-item').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const t = btn.dataset.tag;
+      if(filtrosTagAtivos.has(t)) filtrosTagAtivos.delete(t); else filtrosTagAtivos.add(t);
+      renderTudo();
+    });
+  });
+  empty.querySelectorAll('.ficha-card').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      obraSelecionadaId = el.dataset.id;
+      capituloSelecionadoIdx = null;
+      renderTudo();
+    });
+  });
+}
+
 function renderLista(){
   const cont = document.getElementById('listaObras');
   const obras = obrasFiltradas();
@@ -986,11 +1158,11 @@ function renderDetalhe(){
   const obra = estado.obras.find(o=>o.id===obraSelecionadaId);
 
   if(!obra){
-    empty.style.display = 'flex';
     detalhe.style.display = 'none';
+    renderHome();
     return;
   }
-  empty.style.display = 'none';
+  empty.classList.remove('state-empty','state-dashboard');
   detalhe.style.display = 'block';
 
   let corpoHtml = '';
@@ -1009,7 +1181,7 @@ function renderDetalhe(){
       const modoLeitura = cap.salvo && (cap.texto||'').trim().length > 0;
       const corpoCapitulo = modoLeitura
         ? `
-          <div class="nota-leitura">${formatarTextoLeitura(cap.texto)}</div>
+          <div class="nota-leitura ${cap.justificado?'justificado':''}">${formatarTextoLeitura(cap.texto)}</div>
           <button class="btn-editar-nota" id="btnEditarCapitulo">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>
             Editar
@@ -1020,6 +1192,9 @@ function renderDetalhe(){
           <div class="format-toolbar">
             <button type="button" class="format-btn" id="btnNegrito" title="Negrito"><strong>B</strong></button>
             <button type="button" class="format-btn" id="btnItalico" title="Itálico"><em>I</em></button>
+            <button type="button" class="format-btn ${cap.justificado?'active-format':''}" id="btnJustificar" title="Justificar texto">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+            </button>
           </div>
           <textarea class="nota-field nota-field-grande" id="campoTextoCap" placeholder="Resuma o capítulo e registre suas impressões, citações, conexões…">${escapeHtml(cap.texto||'')}</textarea>
           <button class="btn-salvar-nota" id="btnSalvarCapitulo">Salvar</button>
@@ -1109,6 +1284,11 @@ function renderDetalhe(){
         });
         document.getElementById('btnNegrito').addEventListener('click', ()=> aplicarFormatacao(campo, '**'));
         document.getElementById('btnItalico').addEventListener('click', ()=> aplicarFormatacao(campo, '*'));
+        document.getElementById('btnJustificar').addEventListener('click', (e)=>{
+          cap.justificado = !cap.justificado;
+          e.currentTarget.classList.toggle('active-format', cap.justificado);
+          salvarEstado();
+        });
       }
     }
   } else {
@@ -1292,7 +1472,13 @@ document.getElementById('btnSalvarObra').addEventListener('click', ()=>{
   renderTudo();
 });
 
-document.getElementById('busca').addEventListener('input', renderLista);
+document.getElementById('busca').addEventListener('input', ()=>{ renderLista(); renderDetalhe(); });
+
+document.getElementById('brandLogo').addEventListener('click', ()=>{
+  obraSelecionadaId = null;
+  capituloSelecionadoIdx = null;
+  renderTudo();
+});
 
 document.getElementById('filtroTipo').querySelectorAll('.chip').forEach(btn=>{
   btn.addEventListener('click', ()=>{
@@ -1422,10 +1608,21 @@ document.getElementById('btnSync').addEventListener('click', ()=>{
   if(driveAccessToken){ sincronizarComDrive(); } else { iniciarSync(); }
 });
 
+const modalConectarOverlay = document.getElementById('modalConectarOverlay');
+document.getElementById('btnConectarAgora').addEventListener('click', ()=>{
+  modalConectarOverlay.classList.remove('open');
+  iniciarSync();
+});
+document.getElementById('btnPularConexao').addEventListener('click', ()=>{
+  modalConectarOverlay.classList.remove('open');
+});
+modalConectarOverlay.addEventListener('click', (e)=>{ if(e.target===modalConectarOverlay) modalConectarOverlay.classList.remove('open'); });
+
 /* ============================================================
    INICIALIZAÇÃO
    ============================================================ */
 renderTudo();
+modalConectarOverlay.classList.add('open');
 </script>
 </body>
 </html>
