@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fichário — notas de leitura</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --topbar-h: 61px;
+    --paper: #F1ECE0;
+    --paper-card: #FBF8F0;
+    --paper-dim: #E7DFC9;
+    --ink: #2B2620;
+    --ink-soft: #6b6151;
+    --rule: #cdc2a4;
+    --forest: #3b5d50;
+    --forest-dark: #294238;
+    --brick: #7c4b3a;
+    --danger: #93443a;
+    --radius: 3px;
+    --serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    --mono: 'IBM Plex Mono', 'Courier New', monospace;
+  }
+  *{ box-sizing: border-box; }
+  html, body{ margin:0; padding:0; height:100%; }
+  body{
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  button{ font-family: var(--mono); }
+  input, textarea, select{ font-family: inherit; color: inherit; }
+  ::selection{ background: var(--forest); color:#fff; }
+
+  .app{ display:flex; flex-direction:column; min-height:100vh; }
+
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 20px; height:var(--topbar-h);
+    border-bottom:1px solid var(--rule);
+    background:var(--paper);
+    position:sticky; top:0; z-index:20;
+  }
+  .brand{ display:flex; align-items:baseline; gap:10px; }
+  .brand h1{ font-size:1.4rem; margin:0; font-weight:600; letter-spacing:.01em; }
+  .brand .tagline{ font-family:var(--mono); font-size:.72rem; color:var(--ink-soft); }
+  .topbar-actions{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+
+  .btn{
+    font-family:var(--mono); font-size:.78rem; letter-spacing:.02em;
+    padding:7px 12px; border:1px solid var(--rule); background:var(--paper-card);
+    color:var(--ink); border-radius:var(--radius); cursor:pointer;
+  }
+  .btn:hover{ border-color:var(--forest); color:var(--forest-dark); }
+  .btn:focus-visible{ outline:2px solid var(--forest); outline-offset:2px; }
+  .btn-primary{ background:var(--forest); border-color:var(--forest); color:#fff; }
+  .btn-primary:hover{ background:var(--forest-dark); border-color:var(--forest-dark); color:#fff; }
+  .btn-ghost{ background:transparent; }
+  .btn-block{ width:100%; }
+  .btn-icon{ padding:7px 10px; }
+  .btn-danger{ border-color:var(--danger); color:var(--danger); background:transparent; }
+  .btn-danger:hover{ background:var(--danger); color:#fff; }
+
+  .status-dot{ display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:6px; background:var(--ink-soft); }
+  .status-dot.on{ background:var(--forest); }
+  .drive-status{ font-family:var(--mono); font-size:.68rem; color:var(--ink-soft); display:flex; align-items:center; }
+
+  .layout{ flex:1; display:flex; min-height:0; position:relative; }
+
+  .sidebar-scrim{ display:none; }
+  .sidebar-scrim.show{
+    display:block; position:fixed; top:var(--topbar-h); left:0; right:0; bottom:0;
+    background:rgba(0,0,0,.3); z-index:25;
+  }
+
+  .sidebar{
+    width:320px; flex-shrink:0; border-right:1px solid var(--rule);
+    display:flex; flex-direction:column; background:var(--paper-dim);
+    max-height:calc(100vh - var(--topbar-h));
+  }
+  .sidebar-head{ padding:14px; display:flex; flex-direction:column; gap:8px; border-bottom:1px solid var(--rule); }
+  .search-input{ padding:7px 9px; border:1px solid var(--rule); border-radius:var(--radius); background:var(--paper-card); font-size:.85rem; }
+  .filter-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .chip{
+    font-family:var(--mono); font-size:.7rem; padding:4px 9px; border:1px solid var(--rule);
+    border-radius:999px; cursor:pointer; background:var(--paper-card); color:var(--ink-soft);
+  }
+  .chip.active{ background:var(--forest); border-color:var(--forest); color:#fff; }
+  .tag-select{ padding:6px 8px; border:1px solid var(--rule); border-radius:var(--radius); background:var(--paper-card); font-size:.78rem; }
+
+  .obra-list{ list-style:none; margin:0; padding:0; overflow-y:auto; flex:1; }
+  .obra-item{ padding:12px 14px; border-bottom:1px solid var(--rule); cursor:pointer; border-left:3px solid transparent; }
+  .obra-item:hover{ background:var(--paper-card); }
+  .obra-item.selected{ background:var(--paper-card); border-left-color:var(--forest); }
+  .obra-item h3{ margin:0 0 3px; font-size:.98rem; font-weight:600; }
+  .obra-item .meta{ font-family:var(--mono); font-size:.68rem; color:var(--ink-soft); }
+  .obra-item .tags{ margin-top:5px; display:flex; flex-wrap:wrap; gap:4px; }
+  .tag-pill{ font-family:var(--mono); font-size:.62rem; padding:2px 6px; background:var(--paper); border:1px solid var(--rule); border-radius:999px; color:var(--brick); }
+  .empty-hint{ padding:20px 14px; color:var(--ink-soft); font-size:.8rem; font-family:var(--mono); }
+
+  .detail{ flex:1; overflow-y:auto; padding:28px 34px; max-height:calc(100vh - var(--topbar-h)); }
+  .detail-empty{ max-width:420px; margin:60px auto; text-align:center; border:1px dashed var(--rule); padding:40px 24px; border-radius:var(--radius); color:var(--ink-soft); }
+  .detail-empty h2{ font-weight:600; margin-top:0; font-family:var(--serif); color:var(--ink); }
+
+  .card-header{ border-bottom:2px solid var(--ink); padding-bottom:16px; margin-bottom:20px; }
+  .title-input{
+    font-family:var(--serif); font-size:1.8rem; font-weight:600; border:none; background:transparent;
+    width:100%; padding:2px 0; color:var(--ink);
+  }
+  .title-input:focus{ outline:none; border-bottom:1px solid var(--forest); }
+  .byline{ display:flex; gap:10px; align-items:center; margin-top:6px; flex-wrap:wrap; }
+  .byline input, .byline select{ font-family:var(--mono); font-size:.82rem; border:1px solid transparent; background:transparent; padding:3px 5px; border-radius:var(--radius); }
+  .byline input:hover, .byline select:hover{ border-color:var(--rule); }
+  .byline input:focus, .byline select:focus{ border-color:var(--forest); outline:none; background:var(--paper-card); }
+  .byline .sep{ color:var(--rule); }
+
+  .tags-editor{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:14px 0 0; }
+  .tags-editor .tag-pill{ cursor:pointer; }
+  .tags-editor .tag-pill:hover{ background:var(--danger); border-color:var(--danger); color:#fff; }
+  .tags-editor input{ border:1px solid var(--rule); border-radius:999px; padding:4px 10px; font-family:var(--mono); font-size:.74rem; background:var(--paper-card); min-width:140px; }
+
+  .field-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px 20px; margin:20px 0; }
+  .field{ display:flex; flex-direction:column; gap:4px; }
+  .field label{ font-family:var(--mono); font-size:.66rem; color:var(--ink-soft); }
+  .field input, .field select{ padding:6px 8px; border:1px solid var(--rule); border-radius:var(--radius); background:var(--paper-card); font-size:.85rem; }
+  .modal .field{ margin-bottom:12px; }
+
+  .section{ margin-top:28px; }
+  .section-title{
+    font-family:var(--mono); font-size:.72rem; letter-spacing:.02em; color:var(--ink-soft);
+    border-bottom:1px solid var(--rule); padding-bottom:6px; margin-bottom:12px;
+  }
+  textarea.notas{
+    width:100%; min-height:90px; padding:10px; border:1px solid var(--rule); border-radius:var(--radius);
+    background:var(--paper-card); font-family:var(--serif); font-size:.95rem; line-height:1.6; resize:vertical;
+  }
+
+  .capitulos-controls{ display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+  .capitulos-controls .hint{ font-family:var(--mono); font-size:.7rem; color:var(--ink-soft); }
+  .capitulos-controls input[type=number]{ width:70px; padding:5px 7px; border:1px solid var(--rule); border-radius:var(--radius); background:var(--paper-card); }
+
+  .capitulo{ border:1px solid var(--rule); border-radius:var(--radius); margin-bottom:10px; background:var(--paper-card); }
+  .capitulo summary{ padding:10px 12px; cursor:pointer; display:flex; align-items:center; gap:10px; list-style:none; }
+  .capitulo summary::-webkit-details-marker{ display:none; }
+  .capitulo summary .num{ font-family:var(--mono); color:var(--forest-dark); font-weight:600; font-size:.85rem; }
+  .capitulo summary .cap-titulo{ flex:1; border:none; background:transparent; font-family:var(--serif); font-size:1rem; min-width:0; }
+  .capitulo summary .cap-titulo:focus{ outline:none; }
+  .lido-check{ font-family:var(--mono); font-size:.68rem; display:flex; align-items:center; gap:5px; white-space:nowrap; color:var(--ink-soft); }
+  .capitulo-body{ padding:0 12px 14px; display:flex; flex-direction:column; gap:10px; }
+  .capitulo-body label{ font-family:var(--mono); font-size:.65rem; color:var(--ink-soft); display:block; margin-bottom:3px; }
+  .capitulo-body textarea{
+    width:100%; min-height:70px; padding:8px; border:1px solid var(--rule); border-radius:var(--radius);
+    background:var(--paper); font-family:var(--serif); font-size:.9rem; line-height:1.55; resize:vertical;
+  }
+  .capitulo-footer{ display:flex; justify-content:flex-end; }
+  .no-capitulos{ color:var(--ink-soft); font-family:var(--mono); font-size:.78rem; }
+
+  .danger-zone{ margin-top:36px; padding-top:16px; border-top:1px solid var(--rule); }
+
+  .modal-backdrop{ position:fixed; inset:0; background:rgba(43,38,32,.45); display:flex; align-items:center; justify-content:center; padding:20px; z-index:50; }
+  .modal{ background:var(--paper-card); border-radius:var(--radius); padding:24px; width:100%; max-width:440px; border:1px solid var(--rule); }
+  .modal h2{ margin-top:0; font-size:1.2rem; font-family:var(--serif); }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:18px; }
+
+  .mobile-only{ display:none; }
+
+  @media (max-width:760px){
+    .mobile-only{ display:inline-flex; }
+    .sidebar{
+      position:fixed; top:var(--topbar-h); left:0; bottom:0; width:86%; max-width:340px;
+      transform:translateX(-100%); transition:transform .2s ease; z-index:30; max-height:none;
+    }
+    .sidebar.open{ transform:translateX(0); box-shadow:2px 0 14px rgba(0,0,0,.18); }
+    .detail{ padding:20px 16px; max-height:none; }
+    .title-input{ font-size:1.4rem; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="topbar">
+    <div class="brand">
+      <h1>Fichário</h1>
+      <span class="tagline">notas de leitura</span>
+    </div>
+    <div class="topbar-actions">
+      <span class="drive-status"><span class="status-dot" id="driveDot"></span><span id="driveStatusText">local</span></span>
+      <button class="btn" id="btnDrive" type="button">conectar ao drive</button>
+      <button class="btn btn-ghost" id="btnExport" type="button">exportar</button>
+      <button class="btn btn-ghost" id="btnImportTrigger" type="button">importar</button>
+      <input type="file" id="fileImport" accept="application/json" hidden>
+      <button class="btn btn-icon mobile-only" id="btnMenuToggle" type="button" aria-label="Abrir lista de obras">☰</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="sidebar-scrim" id="sidebarScrim"></div>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-head">
+        <button class="btn btn-primary btn-block" id="btnNovaObra" type="button">+ nova obra</button>
+        <input type="search" class="search-input" id="searchInput" placeholder="buscar por título, autor ou tag">
+        <div class="filter-row" id="filterTipos"></div>
+        <div class="filter-row" id="filterStatus"></div>
+        <select class="tag-select" id="filterTag">
+          <option value="">todas as tags</option>
+        </select>
+      </div>
+      <ul class="obra-list" id="obraList"></ul>
+      <p class="empty-hint" id="emptyHint" hidden>nenhuma obra encontrada com esses filtros</p>
+    </aside>
+
+    <main class="detail" id="detail"></main>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <h2 id="modalTitle">nova obra</h2>
+    <div class="field">
+      <label for="novoTitulo">título</label>
+      <input type="text" id="novoTitulo" placeholder="título da obra">
+    </div>
+    <div class="field">
+      <label for="novoAutor">autor</label>
+      <input type="text" id="novoAutor" placeholder="autor(a)">
+    </div>
+    <div class="field">
+      <label for="novoTipo">tipo</label>
+      <select id="novoTipo">
+        <option value="livro">livro</option>
+        <option value="ensaio">ensaio</option>
+        <option value="artigo">artigo</option>
+        <option value="outro">outro</option>
+      </select>
+    </div>
+    <div class="field" id="novoNumCapitulosWrap">
+      <label for="novoNumCapitulos">número de capítulos (opcional)</label>
+      <input type="number" id="novoNumCapitulos" min="0" placeholder="ex: 12">
+    </div>
+    <div class="field">
+      <label for="novoTags">tags (separadas por vírgula)</label>
+      <input type="text" id="novoTags" placeholder="ex: educação, política pública">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="btnCancelarModal" type="button">cancelar</button>
+      <button class="btn btn-primary" id="btnCriarObra" type="button">criar</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://accounts.google.com/gsi/client"></script>
+<script>
+(function(){
+  'use strict';
+
+  // ---------- Configuração ----------
+  // Cole aqui o Client ID OAuth do Google (pode reaproveitar o mesmo já
+  // autorizado para o seu domínio *.github.io, usado nos outros apps).
+  const CLIENT_ID = 'COLE_AQUI_SEU_CLIENT_ID.apps.googleusercontent.com';
+  const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+  const DRIVE_FILE_NAME = 'fichario-leituras.json';
+  const STORAGE_KEY = 'fichario_leituras_v1';
+
+  const TIPOS = [
+    { id:'livro', label:'livro' },
+    { id:'ensaio', label:'ensaio' },
+    { id:'artigo', label:'artigo' },
+    { id:'outro', label:'outro' }
+  ];
+  const STATUSES = [
+    { id:'quero-ler', label:'quero ler' },
+    { id:'lendo', label:'lendo' },
+    { id:'concluido', label:'concluído' },
+    { id:'pausado', label:'pausado' }
+  ];
+
+  // ---------- Estado ----------
+  let obras = [];
+  let selectedId = null;
+  const filters = { search:'', tipos:new Set(), status:new Set(), tag:'' };
+
+  let accessToken = null;
+  let tokenExpiry = 0;
+  let driveFileId = null;
+  let tokenClient = null;
+  let saveTimer = null;
+
+  // ---------- Util ----------
+  function uid(){
+    return (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Date.now() + '-' + Math.random().toString(16).slice(2));
+  }
+  function todayISO(){ return new Date().toISOString().slice(0,10); }
+  function escapeHTML(str){
+    return String(str || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+  }
+  function el(id){ return document.getElementById(id); }
+
+  // ---------- Persistência local ----------
+  function loadLocal(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){
+      console.error('erro ao ler armazenamento local', e);
+      return [];
+    }
+  }
+  function saveLocal(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(obras));
+  }
+  function scheduleSave(){
+    saveLocal();
+    if (accessToken){
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveToDrive, 1500);
+    }
+  }
+
+  // ---------- Modelo ----------
+  function parseTags(str){
+    if (Array.isArray(str)) return str;
+    return String(str || '').split(',').map(t=>t.trim()).filter(Boolean);
+  }
+  function novaObraObj({ titulo, autor, tipo, numCapitulos, tags }){
+    const capitulos = [];
+    const n = parseInt(numCapitulos, 10);
+    if (tipo === 'livro' && n > 0){
+      for (let i=1;i<=n;i++){
+        capitulos.push({ id:uid(), numero:i, titulo:'', resumo:'', comentario:'', lido:false });
+      }
+    }
+    return {
+      id: uid(),
+      titulo: titulo.trim(),
+      autor: (autor||'').trim(),
+      tipo: tipo,
+      tipoOutro: '',
+      tags: parseTags(tags),
+      status: 'quero-ler',
+      dataInicio: '',
+      dataConclusao: '',
+      fonte: '',
+      notasGerais: '',
+      capitulos,
+      criadoEm: new Date().toISOString(),
+      atualizadoEm: new Date().toISOString()
+    };
+  }
+  function touchObra(obra){ obra.atualizadoEm = new Date().toISOString(); }
+  function getObra(id){ return obras.find(o=>o.id===id); }
+
+  function createObra(data){
+    const obra = novaObraObj(data);
+    obras.push(obra);
+    selectedId = obra.id;
+    scheduleSave();
+    renderAll();
+  }
+  function deleteObra(id){
+    const obra = getObra(id);
+    if (!obra) return;
+    if (!confirm('Excluir "' + obra.titulo + '" e todas as suas notas? Essa ação não pode ser desfeita.')) return;
+    obras = obras.filter(o=>o.id!==id);
+    if (selectedId===id) selectedId = null;
+    scheduleSave();
+    renderAll();
+  }
+
+  // ---------- Filtros ----------
+  function matchesFilters(obra){
+    const search = filters.search.trim().toLowerCase();
+    if (search){
+      const hay = [obra.titulo, obra.autor, ...(obra.tags||[])].join(' ').toLowerCase();
+      if (!hay.includes(search)) return false;
+    }
+    if (filters.tipos.size && !filters.tipos.has(obra.tipo)) return false;
+    if (filters.status.size && !filters.status.has(obra.status)) return false;
+    if (filters.tag && !(obra.tags||[]).includes(filters.tag)) return false;
+    return true;
+  }
+  function getAllTags(){
+    const set = new Set();
+    obras.forEach(o=>(o.tags||[]).forEach(t=>set.add(t)));
+    return Array.from(set).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  }
+
+  // ---------- Render: filtros ----------
+  function renderFilterChips(){
+    el('filterTipos').innerHTML = TIPOS.map(t=>
+      `<button type="button" class="chip ${filters.tipos.has(t.id)?'active':''}" data-filter-tipo="${t.id}">${t.label}</button>`
+    ).join('');
+    el('filterStatus').innerHTML = STATUSES.map(s=>
+      `<button type="button" class="chip ${filters.status.has(s.id)?'active':''}" data-filter-status="${s.id}">${s.label}</button>`
+    ).join('');
+    const current = filters.tag;
+    el('filterTag').innerHTML = '<option value="">todas as tags</option>' +
+      getAllTags().map(t=>`<option value="${escapeHTML(t)}" ${t===current?'selected':''}>${escapeHTML(t)}</option>`).join('');
+  }
+
+  // ---------- Render: sidebar ----------
+  function statusLabel(id){ const s = STATUSES.find(s=>s.id===id); return s ? s.label : id; }
+  function tipoLabel(obra){
+    if (obra.tipo==='outro' && obra.tipoOutro) return obra.tipoOutro;
+    const t = TIPOS.find(t=>t.id===obra.tipo);
+    return t ? t.label : obra.tipo;
+  }
+  function renderSidebar(){
+    const items = obras.filter(matchesFilters).sort((a,b)=>a.titulo.localeCompare(b.titulo,'pt-BR'));
+    el('obraList').innerHTML = items.map(o=>`
+      <li class="obra-item ${o.id===selectedId?'selected':''}" data-id="${o.id}">
+        <h3>${escapeHTML(o.titulo)}</h3>
+        <div class="meta">${escapeHTML(o.autor || 'autor desconhecido')} · ${escapeHTML(tipoLabel(o))} · ${escapeHTML(statusLabel(o.status))}</div>
+        ${(o.tags && o.tags.length) ? `<div class="tags">${o.tags.map(t=>`<span class="tag-pill">${escapeHTML(t)}</span>`).join('')}</div>` : ''}
+      </li>
+    `).join('');
+    el('emptyHint').hidden = !(obras.length>0 && items.length===0);
+  }
+
+  // ---------- Render: detalhe ----------
+  function renderDetail(){
+    const detail = el('detail');
+    const obra = getObra(selectedId);
+    if (!obra){
+      detail.innerHTML = `
+        <div class="detail-empty">
+          <h2>nenhuma obra selecionada</h2>
+          <p>Escolha uma obra na lista ao lado ou crie uma nova ficha para começar a registrar suas leituras.</p>
+        </div>`;
+      return;
+    }
+    const isLivro = obra.tipo === 'livro';
+    detail.innerHTML = `
+      <div class="card-header">
+        <input type="text" class="title-input" id="fTitulo" value="${escapeHTML(obra.titulo)}" placeholder="título">
+        <div class="byline">
+          <input type="text" id="fAutor" value="${escapeHTML(obra.autor)}" placeholder="autor(a)" size="20">
+          <span class="sep">·</span>
+          <select id="fTipo">
+            ${TIPOS.map(t=>`<option value="${t.id}" ${t.id===obra.tipo?'selected':''}>${t.label}</option>`).join('')}
+          </select>
+          ${obra.tipo==='outro' ? `<input type="text" id="fTipoOutro" value="${escapeHTML(obra.tipoOutro)}" placeholder="especifique o tipo" size="16">` : ''}
+          <span class="sep">·</span>
+          <select id="fStatus">
+            ${STATUSES.map(s=>`<option value="${s.id}" ${s.id===obra.status?'selected':''}>${s.label}</option>`).join('')}
+          </select>
+        </div>
+        <div class="tags-editor" id="tagsEditor">
+          ${(obra.tags||[]).map(t=>`<span class="tag-pill" data-tag="${escapeHTML(t)}" title="remover tag">${escapeHTML(t)} ✕</span>`).join('')}
+          <input type="text" id="novaTagInput" placeholder="+ tag">
+        </div>
+      </div>
+
+      <div class="field-grid">
+        <div class="field">
+          <label for="fDataInicio">início da leitura</label>
+          <input type="date" id="fDataInicio" value="${obra.dataInicio||''}">
+        </div>
+        <div class="field">
+          <label for="fDataConclusao">conclusão</label>
+          <input type="date" id="fDataConclusao" value="${obra.dataConclusao||''}">
+        </div>
+        <div class="field">
+          <label for="fFonte">edição / fonte</label>
+          <input type="text" id="fFonte" value="${escapeHTML(obra.fonte)}" placeholder="editora, ano, link...">
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">notas gerais</div>
+        <textarea class="notas" id="fNotasGerais" placeholder="impressões gerais sobre a obra...">${escapeHTML(obra.notasGerais)}</textarea>
+      </div>
+
+      <div class="section">
+        <div class="section-title">capítulos / seções (${obra.capitulos.length})</div>
+        <div class="capitulos-controls">
+          ${isLivro ? `
+            <span class="hint">definir total:</span>
+            <input type="number" id="fNumCapitulos" min="0" value="${obra.capitulos.length}">
+            <button class="btn btn-ghost" id="btnAplicarNumCapitulos" type="button">aplicar</button>
+          ` : ''}
+          <button class="btn btn-ghost" id="btnAddCapitulo" type="button">+ adicionar</button>
+        </div>
+        <div id="capitulosList">
+          ${obra.capitulos.map(renderCapituloHTML).join('') || '<p class="no-capitulos">nenhum capítulo cadastrado ainda</p>'}
+        </div>
+      </div>
+
+      <div class="danger-zone">
+        <button class="btn btn-danger" id="btnExcluirObra" type="button">excluir obra</button>
+      </div>
+    `;
+    bindDetailEvents(obra);
+  }
+
+  function renderCapituloHTML(cap){
+    return `
+      <details class="capitulo" data-cap-id="${cap.id}">
+        <summary>
+          <span class="num">${String(cap.numero).padStart(2,'0')}</span>
+          <input type="text" class="cap-titulo" data-cap-field="titulo" value="${escapeHTML(cap.titulo)}" placeholder="título do capítulo (opcional)">
+          <label class="lido-check" onclick="event.stopPropagation()">
+            <input type="checkbox" data-cap-field="lido" ${cap.lido?'checked':''}> lido
+          </label>
+        </summary>
+        <div class="capitulo-body">
+          <div>
+            <label>resumo</label>
+            <textarea data-cap-field="resumo" placeholder="do que trata o capítulo...">${escapeHTML(cap.resumo)}</textarea>
+          </div>
+          <div>
+            <label>comentário</label>
+            <textarea data-cap-field="comentario" placeholder="sua impressão, crítica, conexões...">${escapeHTML(cap.comentario)}</textarea>
+          </div>
+          <div class="capitulo-footer">
+            <button class="btn btn-ghost" data-cap-remove type="button">remover capítulo</button>
+          </div>
+        </div>
+      </details>
+    `;
+  }
+
+  // ---------- Eventos do painel de detalhe ----------
+  function bindDetailEvents(obra){
+    el('fTitulo').addEventListener('input', e=>{
+      obra.titulo = e.target.value; touchObra(obra); renderSidebar(); scheduleSave();
+    });
+    el('fAutor').addEventListener('input', e=>{
+      obra.autor = e.target.value; touchObra(obra); renderSidebar(); scheduleSave();
+    });
+    el('fTipo').addEventListener('change', e=>{
+      obra.tipo = e.target.value; touchObra(obra); scheduleSave(); renderSidebar(); renderFilterChips(); renderDetail();
+    });
+    const tipoOutro = el('fTipoOutro');
+    if (tipoOutro) tipoOutro.addEventListener('input', e=>{
+      obra.tipoOutro = e.target.value; touchObra(obra); renderSidebar(); scheduleSave();
+    });
+    el('fStatus').addEventListener('change', e=>{
+      obra.status = e.target.value; touchObra(obra); renderSidebar(); renderFilterChips(); scheduleSave();
+    });
+    el('fDataInicio').addEventListener('change', e=>{ obra.dataInicio = e.target.value; touchObra(obra); scheduleSave(); });
+    el('fDataConclusao').addEventListener('change', e=>{ obra.dataConclusao = e.target.value; touchObra(obra); scheduleSave(); });
+    el('fFonte').addEventListener('input', e=>{ obra.fonte = e.target.value; touchObra(obra); scheduleSave(); });
+    el('fNotasGerais').addEventListener('input', e=>{ obra.notasGerais = e.target.value; touchObra(obra); scheduleSave(); });
+
+    el('tagsEditor').addEventListener('click', e=>{
+      const pill = e.target.closest('[data-tag]');
+      if (pill){
+        obra.tags = obra.tags.filter(t=>t!==pill.dataset.tag);
+        touchObra(obra); renderSidebar(); renderFilterChips(); scheduleSave(); renderDetail();
+      }
+    });
+    el('novaTagInput').addEventListener('keydown', e=>{
+      if (e.key==='Enter' || e.key===','){
+        e.preventDefault();
+        const val = e.target.value.trim().replace(/,$/,'');
+        if (val && !obra.tags.includes(val)){
+          obra.tags.push(val); touchObra(obra); renderSidebar(); renderFilterChips(); scheduleSave(); renderDetail();
+        } else {
+          e.target.value = '';
+        }
+      }
+    });
+
+    const numCapInput = el('fNumCapitulos');
+    const btnAplicar = el('btnAplicarNumCapitulos');
+    if (btnAplicar) btnAplicar.addEventListener('click', ()=>{
+      const n = Math.max(0, parseInt(numCapInput.value,10)||0);
+      applyNumCapitulos(obra, n);
+    });
+    el('btnAddCapitulo').addEventListener('click', ()=>{
+      const nextNum = obra.capitulos.length ? Math.max(...obra.capitulos.map(c=>c.numero))+1 : 1;
+      obra.capitulos.push({ id:uid(), numero:nextNum, titulo:'', resumo:'', comentario:'', lido:false });
+      touchObra(obra); scheduleSave(); renderDetail();
+    });
+
+    el('capitulosList').addEventListener('input', e=>{
+      const field = e.target.dataset.capField;
+      if (!field) return;
+      const wrap = e.target.closest('[data-cap-id]');
+      const cap = obra.capitulos.find(c=>c.id===wrap.dataset.capId);
+      if (!cap) return;
+      if (field==='titulo') cap.titulo = e.target.value;
+      if (field==='resumo') cap.resumo = e.target.value;
+      if (field==='comentario') cap.comentario = e.target.value;
+      touchObra(obra); scheduleSave();
+    });
+    el('capitulosList').addEventListener('change', e=>{
+      if (e.target.dataset.capField==='lido'){
+        const wrap = e.target.closest('[data-cap-id]');
+        const cap = obra.capitulos.find(c=>c.id===wrap.dataset.capId);
+        if (cap){ cap.lido = e.target.checked; touchObra(obra); scheduleSave(); }
+      }
+    });
+    el('capitulosList').addEventListener('click', e=>{
+      if (e.target.matches('[data-cap-remove]')){
+        const wrap = e.target.closest('[data-cap-id]');
+        const cap = obra.capitulos.find(c=>c.id===wrap.dataset.capId);
+        const hasContent = cap && (cap.resumo || cap.comentario || cap.titulo);
+        if (hasContent && !confirm('Este capítulo tem notas. Remover mesmo assim?')) return;
+        obra.capitulos = obra.capitulos.filter(c=>c.id!==wrap.dataset.capId);
+        touchObra(obra); scheduleSave(); renderDetail();
+      }
+    });
+
+    el('btnExcluirObra').addEventListener('click', ()=>deleteObra(obra.id));
+  }
+
+  function applyNumCapitulos(obra, n){
+    const current = obra.capitulos.length;
+    if (n === current) return;
+    if (n < current){
+      const removed = obra.capitulos.slice(n);
+      const hasContent = removed.some(c=>c.resumo || c.comentario || c.titulo);
+      if (hasContent && !confirm('Alguns capítulos que seriam removidos têm notas. Continuar?')) return;
+      obra.capitulos = obra.capitulos.slice(0,n);
+    } else {
+      for (let i=current+1;i<=n;i++){
+        obra.capitulos.push({ id:uid(), numero:i, titulo:'', resumo:'', comentario:'', lido:false });
+      }
+    }
+    touchObra(obra); scheduleSave(); renderDetail();
+  }
+
+  // ---------- Render geral ----------
+  function renderAll(){
+    renderFilterChips();
+    renderSidebar();
+    renderDetail();
+  }
+
+  // ---------- Lista lateral: seleção ----------
+  el('obraList').addEventListener('click', e=>{
+    const li = e.target.closest('[data-id]');
+    if (!li) return;
+    selectedId = li.dataset.id;
+    renderSidebar();
+    renderDetail();
+    closeSidebarMobile();
+  });
+
+  // ---------- Filtros: eventos ----------
+  el('searchInput').addEventListener('input', e=>{ filters.search = e.target.value; renderSidebar(); });
+  el('filterTipos').addEventListener('click', e=>{
+    const btn = e.target.closest('[data-filter-tipo]');
+    if (!btn) return;
+    const v = btn.dataset.filterTipo;
+    filters.tipos.has(v) ? filters.tipos.delete(v) : filters.tipos.add(v);
+    renderFilterChips(); renderSidebar();
+  });
+  el('filterStatus').addEventListener('click', e=>{
+    const btn = e.target.closest('[data-filter-status]');
+    if (!btn) return;
+    const v = btn.dataset.filterStatus;
+    filters.status.has(v) ? filters.status.delete(v) : filters.status.add(v);
+    renderFilterChips(); renderSidebar();
+  });
+  el('filterTag').addEventListener('change', e=>{ filters.tag = e.target.value; renderSidebar(); });
+
+  // ---------- Modal nova obra ----------
+  function toggleNumCapWrap(){
+    el('novoNumCapitulosWrap').style.display = el('novoTipo').value==='livro' ? 'flex' : 'none';
+  }
+  function openModal(){
+    el('modalBackdrop').hidden = false;
+    el('novoTitulo').value=''; el('novoAutor').value=''; el('novoTipo').value='livro';
+    el('novoNumCapitulos').value=''; el('novoTags').value='';
+    toggleNumCapWrap();
+    el('novoTitulo').focus();
+  }
+  function closeModal(){ el('modalBackdrop').hidden = true; }
+  el('btnNovaObra').addEventListener('click', openModal);
+  el('btnCancelarModal').addEventListener('click', closeModal);
+  el('modalBackdrop').addEventListener('click', e=>{ if (e.target.id==='modalBackdrop') closeModal(); });
+  el('novoTipo').addEventListener('change', toggleNumCapWrap);
+  el('btnCriarObra').addEventListener('click', ()=>{
+    const titulo = el('novoTitulo').value.trim();
+    if (!titulo){ alert('Dê um título à obra antes de criar.'); return; }
+    createObra({
+      titulo,
+      autor: el('novoAutor').value,
+      tipo: el('novoTipo').value,
+      numCapitulos: el('novoNumCapitulos').value,
+      tags: el('novoTags').value
+    });
+    closeModal();
+  });
+  document.addEventListener('keydown', e=>{
+    if (e.key==='Escape' && !el('modalBackdrop').hidden) closeModal();
+  });
+
+  // ---------- Sidebar mobile ----------
+  function openSidebarMobile(){ el('sidebar').classList.add('open'); el('sidebarScrim').classList.add('show'); }
+  function closeSidebarMobile(){ el('sidebar').classList.remove('open'); el('sidebarScrim').classList.remove('show'); }
+  el('btnMenuToggle').addEventListener('click', ()=>{
+    el('sidebar').classList.contains('open') ? closeSidebarMobile() : openSidebarMobile();
+  });
+  el('sidebarScrim').addEventListener('click', closeSidebarMobile);
+
+  // ---------- Exportar / importar ----------
+  el('btnExport').addEventListener('click', ()=>{
+    const blob = new Blob([JSON.stringify(obras, null, 2)], { type:'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'fichario-leituras-' + todayISO() + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+  el('btnImportTrigger').addEventListener('click', ()=>el('fileImport').click());
+  el('fileImport').addEventListener('change', e=>{
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      try{
+        const data = JSON.parse(reader.result);
+        if (!Array.isArray(data)) throw new Error('formato inválido');
+        if (!confirm('Isso substituirá os dados atuais por este arquivo. Continuar?')) return;
+        obras = data;
+        selectedId = null;
+        scheduleSave();
+        renderAll();
+      }catch(err){
+        alert('Não foi possível importar: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  // ---------- Google Drive ----------
+  function setDriveStatus(text, connected){
+    el('driveStatusText').textContent = text;
+    el('driveDot').classList.toggle('on', !!connected);
+  }
+
+  function initGoogleClient(){
+    if (!CLIENT_ID || CLIENT_ID.indexOf('COLE_AQUI')===0) return;
+    if (typeof google === 'undefined' || !google.accounts){ console.warn('Google Identity Services ainda não carregado'); return; }
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: DRIVE_SCOPE,
+      callback: () => {} // sobrescrito a cada chamada em requestToken()
+    });
+  }
+
+  function requestToken(promptType){
+    return new Promise((resolve, reject)=>{
+      if (!tokenClient){ reject(new Error('cliente Google ainda não carregado')); return; }
+      tokenClient.callback = (resp)=>{
+        if (resp.error){ reject(resp); return; }
+        accessToken = resp.access_token;
+        tokenExpiry = Date.now() + (resp.expires_in*1000) - 60000;
+        resolve(accessToken);
+      };
+      tokenClient.requestAccessToken({ prompt: promptType });
+    });
+  }
+  async function ensureToken(){
+    if (accessToken && Date.now() < tokenExpiry) return accessToken;
+    return requestToken(accessToken ? '' : 'consent');
+  }
+
+  async function driveFetch(url, options){
+    const token = await ensureToken();
+    const opts = options || {};
+    opts.headers = Object.assign({}, opts.headers, { Authorization: 'Bearer ' + token });
+    const res = await fetch(url, opts);
+    if (!res.ok){
+      const body = await res.text().catch(()=>'');
+      throw new Error('erro do Drive (' + res.status + '): ' + body);
+    }
+    return res;
+  }
+  async function driveFindFile(){
+    const url = 'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name,modifiedTime)&q=' +
+      encodeURIComponent(`name='${DRIVE_FILE_NAME}' and trashed=false`);
+    const res = await driveFetch(url);
+    const data = await res.json();
+    return (data.files && data.files[0]) || null;
+  }
+  function multipartBody(metadata, content){
+    const boundary = '-------fichario' + Date.now();
+    const body =
+      `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}\r\n` +
+      `--${boundary}\r\nContent-Type: application/json\r\n\r\n${content}\r\n` +
+      `--${boundary}--`;
+    return { body, boundary };
+  }
+  async function driveCreateFile(content){
+    const { body, boundary } = multipartBody({ name: DRIVE_FILE_NAME, parents:['appDataFolder'] }, content);
+    const res = await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+      method:'POST',
+      headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+      body
+    });
+    const data = await res.json();
+    return data.id;
+  }
+  async function driveUpdateFile(fileId, content){
+    const { body, boundary } = multipartBody({}, content);
+    await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`, {
+      method:'PATCH',
+      headers: { 'Content-Type': `multipart/related; boundary=${boundary}` },
+      body
+    });
+  }
+  async function driveGetContent(fileId){
+    const res = await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
+    return res.text();
+  }
+
+  async function connectDrive(){
+    if (!CLIENT_ID || CLIENT_ID.indexOf('COLE_AQUI')===0){
+      alert('Antes de sincronizar, cole seu Client ID OAuth do Google na constante CLIENT_ID, no início do script.');
+      return;
+    }
+    if (!tokenClient) initGoogleClient();
+    setDriveStatus('conectando…', false);
+    try{
+      await ensureToken();
+      const file = await driveFindFile();
+      if (file){
+        driveFileId = file.id;
+        const content = await driveGetContent(file.id);
+        const parsed = JSON.parse(content || '[]');
+        if (Array.isArray(parsed)) obras = parsed;
+      } else {
+        driveFileId = await driveCreateFile(JSON.stringify(obras));
+      }
+      saveLocal();
+      selectedId = null;
+      renderAll();
+      setDriveStatus('conectado', true);
+      el('btnDrive').textContent = 'sincronizado ✓';
+    }catch(err){
+      console.error(err);
+      setDriveStatus('erro ao conectar', false);
+      alert('Não foi possível conectar ao Google Drive: ' + err.message);
+    }
+  }
+  async function saveToDrive(){
+    if (!accessToken) return;
+    try{
+      setDriveStatus('salvando…', true);
+      if (!driveFileId){
+        const file = await driveFindFile();
+        driveFileId = file ? file.id : await driveCreateFile(JSON.stringify(obras));
+      }
+      if (driveFileId) await driveUpdateFile(driveFileId, JSON.stringify(obras));
+      setDriveStatus('conectado', true);
+    }catch(err){
+      console.error(err);
+      setDriveStatus('falha ao salvar', false);
+    }
+  }
+  el('btnDrive').addEventListener('click', connectDrive);
+
+  // ---------- Inicialização ----------
+  obras = loadLocal();
+  renderAll();
+  initGoogleClient();
+
+})();
+</script>
+</body>
+</html>
